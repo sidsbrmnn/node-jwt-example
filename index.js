@@ -32,7 +32,7 @@ app.post('/api/login', (req, res) => {
 
   const user = {
     username: req.body.username,
-    email: req.body.email
+    email: req.body.email,
   };
 
   const token = jwt.sign(user, JWT_SECRET);
@@ -48,7 +48,7 @@ app.post('/api/posts', auth, (req, res) => {
     title: req.body.title,
     content: req.body.content,
     time: Date.now(),
-    ...req.user
+    ...req.user,
   };
 
   res.send(post);
