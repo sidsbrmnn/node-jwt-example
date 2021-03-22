@@ -1,21 +1,34 @@
-require('dotenv').config();
+const dotenv = require('dotenv');
 const express = require('express');
 const jwt = require('jsonwebtoken');
+
+dotenv.config();
 
 const app = express();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'mySecretKey';
 
-function auth(req, res, next) {
-  const token = req.header('x-auth-token');
-  if (!token) return res.status(401).send('No token provided');
+/**
+ * Middleware that checks for the JSON Web Token on Authorization header
+ *
+ * @param {express.Request} req
+ * @param {express.Response} res
+ * @param {express.NextFunction} next
+ * @returns {void}
+ */
+function ensureAuthenticated(req, res, next) {
+  const token = req.headers.authorization;
+  if (!token) {
+    return res.status(401).send({ message: 'No token provided.' });
+  }
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
+
     next();
-  } catch (ex) {
-    res.status(402).send('Invalid token');
+  } catch (err) {
+    res.status(402).send({ message: 'Invalid token.' });
   }
 }
 
@@ -27,8 +40,9 @@ app.get('/api', (req, res) => {
 });
 
 app.post('/api/login', (req, res) => {
-  if (!req.body.username || !req.body.email)
-    return res.status(400).send('Username or email empty.');
+  if (!req.body.username || !req.body.email) {
+    return res.status(400).send({ message: 'Username or email is empty.' });
+  }
 
   const user = {
     username: req.body.username,
@@ -36,13 +50,13 @@ app.post('/api/login', (req, res) => {
   };
 
   const token = jwt.sign(user, JWT_SECRET);
-
-  res.send(token);
+  res.send({ data: token });
 });
 
-app.post('/api/posts', auth, (req, res) => {
-  if (!req.body.title || !req.body.content)
-    return res.status(400).send('Post title or content empty');
+app.post('/api/posts', ensureAuthenticated, (req, res) => {
+  if (!req.body.title || !req.body.content) {
+    return res.status(400).send({ message: 'Post title or content is empty.' });
+  }
 
   const post = {
     title: req.body.title,
@@ -51,10 +65,10 @@ app.post('/api/posts', auth, (req, res) => {
     ...req.user,
   };
 
-  res.send(post);
+  res.send({ data: post });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 app.listen(PORT, () => {
-  console.log('Listening on port', PORT);
+  console.log('Listening on port :' + PORT);
 });
